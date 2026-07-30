@@ -1,0 +1,11 @@
+.venv/
+node_modules/
+tmp/
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+
+# Dados e documentos de origem: compartilhar apenas por canal autorizado.
+BASE_PEDE_CONSOLIDADA_TRATADA_V2.xlsx
+POSTECH - Datathon - Fase 5.pdf
+READ ME .docx
