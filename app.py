@@ -1,6 +1,6 @@
-﻿"""Dashboard analÃ­tico do Datathon Passos MÃ¡gicos.
+"""Dashboard analítico do Datathon Passos Mágicos.
 
-ExecuÃ§Ã£o:
+Execução:
     .venv\\Scripts\\streamlit.exe run app.py
 """
 
@@ -19,15 +19,15 @@ ROOT = Path(__file__).resolve().parent
 DATA_PATH = ROOT / "BASE_PEDE_CONSOLIDADA_TRATADA_V2.xlsx"
 INDICADORES = ["IAN", "IDA", "IEG", "IAA", "IPS", "IPP", "IPV", "INDE"]
 CORES_DEFASAGEM = {
-    "Severa (â‰¤ -2)": "#DC2626",
+    "Severa (≤ -2)": "#DC2626",
     "Moderada (-1)": "#F59E0B",
-    "Sem defasagem (â‰¥ 0)": "#059669",
+    "Sem defasagem (≥ 0)": "#059669",
 }
 
 
 st.set_page_config(
-    page_title="Passos MÃ¡gicos | Datathon",
-    page_icon="ðŸ“Š",
+    page_title="Passos Mágicos | Datathon",
+    page_icon="📊",
     layout="wide",
 )
 
@@ -39,7 +39,7 @@ def carregar_dados(path: Path) -> pd.DataFrame:
     df["NIVEL_DEFASAGEM"] = pd.cut(
         df["DEFASAGEM"],
         bins=[-np.inf, -2, -1, np.inf],
-        labels=["Severa (â‰¤ -2)", "Moderada (-1)", "Sem defasagem (â‰¥ 0)"],
+        labels=["Severa (≤ -2)", "Moderada (-1)", "Sem defasagem (≥ 0)"],
     )
     return df
 
@@ -57,7 +57,7 @@ def aplicar_filtros(df: pd.DataFrame) -> pd.DataFrame:
     fases_escolhidas = st.sidebar.multiselect("Fase", fases, default=fases)
 
     generos = sorted(df["GENERO"].dropna().unique())
-    generos_escolhidos = st.sidebar.multiselect("GÃªnero", generos, default=generos)
+    generos_escolhidos = st.sidebar.multiselect("Gênero", generos, default=generos)
 
     instituicoes = sorted(df["INSTITUICAO_ENSINO"].dropna().astype(str).unique())
     instituicoes_escolhidas = st.sidebar.multiselect(
@@ -74,7 +74,7 @@ def aplicar_filtros(df: pd.DataFrame) -> pd.DataFrame:
     return filtrado
 
 
-def grafico_sem_dados(mensagem: str = "Não há¡ dados para os filtros selecionados.") -> None:
+def grafico_sem_dados(mensagem: str = "Não há dados para os filtros selecionados.") -> None:
     st.info(mensagem)
 
 
@@ -82,8 +82,8 @@ def visao_geral(df: pd.DataFrame) -> None:
     st.subheader("Visão geral")
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("Registros", formatar_numero(len(df)))
-    col2.metric("Alunos Ãºnicos", formatar_numero(df["RA"].nunique()))
-    col3.metric("INDE médio", f"{df['INDE'].mean():.2f}" if df["INDE"].notna().any() else "â€”")
+    col2.metric("Alunos únicos", formatar_numero(df["RA"].nunique()))
+    col3.metric("INDE médio", f"{df['INDE'].mean():.2f}" if df["INDE"].notna().any() else "—")
     revisar = (df["QUALIDADE_REGISTRO"] == "REVISAR").mean()
     col4.metric("Registros para revisar", f"{revisar:.1%}")
 
@@ -159,7 +159,7 @@ def questao_1(df: pd.DataFrame) -> None:
         text=tabela["Percentual"].map(lambda valor: f"{valor:.1%}"),
         barmode="stack",
         color_discrete_map=CORES_DEFASAGEM,
-        labels={"ANO_REFERENCIA": "Ano", "NIVEL_DEFASAGEM": "Ní­vel"},
+        labels={"ANO_REFERENCIA": "Ano", "NIVEL_DEFASAGEM": "Nível"},
         title="Perfil de defasagem por ano",
     )
     fig.update_yaxes(tickformat=".0%")
@@ -167,7 +167,7 @@ def questao_1(df: pd.DataFrame) -> None:
 
 
 def questao_2(df: pd.DataFrame) -> None:
-    st.subheader("2. Desempenho acadêmico” IDA")
+    st.subheader("2. Desempenho acadêmico — IDA")
     medias = df.groupby("ANO_REFERENCIA", as_index=False)["IDA"].mean()
     esquerda, direita = st.columns([1, 1.4])
     esquerda.plotly_chart(
@@ -203,8 +203,8 @@ def questao_3(df: pd.DataFrame) -> None:
     st.subheader("3. Engajamento em relação do IEG com IDA e IPV")
     col1, col2 = st.columns(2)
     for coluna, eixo, titulo in [
-        (col1, "IDA", "IEG Ã— desempenho acadêmico"),
-        (col2, "IPV", "IEG Ã— ponto de virada"),
+        (col1, "IDA", "IEG × desempenho acadêmico"),
+        (col2, "IPV", "IEG × ponto de virada"),
     ]:
         base = df.dropna(subset=["IEG", eixo])
         rho = base[["IEG", eixo]].corr(method="spearman").iloc[0, 1]
@@ -214,7 +214,7 @@ def questao_3(df: pd.DataFrame) -> None:
             y=eixo,
             color="ANO_REFERENCIA",
             opacity=0.35,
-            title=f"{titulo} Â· Spearman = {rho:.2f}",
+            title=f"{titulo} · Spearman = {rho:.2f}",
             hover_data=["RA", "FASE_NUMERICA"],
         )
         coluna.plotly_chart(fig, width="stretch")
@@ -244,14 +244,14 @@ def questao_4(df: pd.DataFrame) -> None:
             x="ANO_REFERENCIA",
             y="DIFERENCA_IAA",
             points=False,
-            title="DiferenÃ§a entre percepção e referência observada",
-            labels={"DIFERENCA_IAA": "IAA ’ média(IDA, IEG)", "ANO_REFERENCIA": "Ano"},
+            title="Diferença entre percepção e referência observada",
+            labels={"DIFERENCA_IAA": "IAA − média(IDA, IEG)", "ANO_REFERENCIA": "Ano"},
         ),
         width="stretch",
     )
     st.caption(
         "Valores positivos indicam autoavaliação acima da média combinada de "
-        "desempenho e engajamento; nÃo representam, isoladamente, erro de percepção."
+        "desempenho e engajamento; não representam, isoladamente, erro de percepção."
     )
 
 
@@ -266,11 +266,11 @@ def construir_transicoes(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def questao_5(df_completo: pd.DataFrame, ids_filtrados: set[str]) -> None:
-    st.subheader("5. Aspectos psicossociais â€” IPS antes de quedas")
+    st.subheader("5. Aspectos psicossociais — IPS antes de quedas")
     transicoes = construir_transicoes(df_completo)
     transicoes = transicoes[transicoes["RA"].isin(ids_filtrados)]
     if transicoes.empty:
-        grafico_sem_dados("NÃo há¡ transições anuais para os alunos selecionados.")
+        grafico_sem_dados("Não há transições anuais para os alunos selecionados.")
         return
     col1, col2 = st.columns(2)
     col1.plotly_chart(
@@ -280,8 +280,8 @@ def questao_5(df_completo: pd.DataFrame, ids_filtrados: set[str]) -> None:
             y="DELTA_IDA",
             color="ANO_REFERENCIA",
             opacity=0.4,
-            title="IPS atual Ã— variação do IDA no ano seguinte",
-            labels={"DELTA_IDA": "IDA seguinte âˆ’ IDA atual"},
+            title="IPS atual × variação do IDA no ano seguinte",
+            labels={"DELTA_IDA": "IDA seguinte − IDA atual"},
         ),
         width="stretch",
     )
@@ -292,8 +292,8 @@ def questao_5(df_completo: pd.DataFrame, ids_filtrados: set[str]) -> None:
             y="DELTA_IEG",
             color="ANO_REFERENCIA",
             opacity=0.4,
-            title="IPS atual Ã— variação do IEG no ano seguinte",
-            labels={"DELTA_IEG": "IEG seguinte âˆ’ IEG atual"},
+            title="IPS atual × variação do IEG no ano seguinte",
+            labels={"DELTA_IEG": "IEG seguinte − IEG atual"},
         ),
         width="stretch",
     )
@@ -304,10 +304,10 @@ def questao_5(df_completo: pd.DataFrame, ids_filtrados: set[str]) -> None:
 
 
 def questao_6(df: pd.DataFrame) -> None:
-    st.subheader("6. Aspectos psicopedagógicos â€” IPP e adequações")
+    st.subheader("6. Aspectos psicopedagógicos — IPP e adequação")
     base = df.dropna(subset=["IPP", "DEFASAGEM"]).copy()
     if base.empty:
-        grafico_sem_dados("IPP não estão¡ disponí­vel para os filtros selecionados.")
+        grafico_sem_dados("O IPP não está disponível para os filtros selecionados.")
         return
     col1, col2 = st.columns(2)
     col1.plotly_chart(
@@ -318,8 +318,8 @@ def questao_6(df: pd.DataFrame) -> None:
             color="NIVEL_DEFASAGEM",
             color_discrete_map=CORES_DEFASAGEM,
             points=False,
-            title="Distribuição do IPP por nÃ­vel de defasagem",
-            labels={"NIVEL_DEFASAGEM": "NÃ­vel de defasagem"},
+            title="Distribuição do IPP por nível de defasagem",
+            labels={"NIVEL_DEFASAGEM": "Nível de defasagem"},
         ),
         width="stretch",
     )
@@ -336,8 +336,8 @@ def questao_6(df: pd.DataFrame) -> None:
             color="NIVEL_DEFASAGEM",
             markers=True,
             color_discrete_map=CORES_DEFASAGEM,
-            title="IPP médio por nÃ­vel e ano",
-            labels={"ANO_REFERENCIA": "Ano", "NIVEL_DEFASAGEM": "Ní­vel"},
+            title="IPP médio por nível e ano",
+            labels={"ANO_REFERENCIA": "Ano", "NIVEL_DEFASAGEM": "Nível"},
         ),
         width="stretch",
     )
@@ -345,7 +345,7 @@ def questao_6(df: pd.DataFrame) -> None:
 
 
 def questao_7(df: pd.DataFrame) -> None:
-    st.subheader("7. Ponto de virada â€” fatores associados ao IPV")
+    st.subheader("7. Ponto de virada — fatores associados ao IPV")
     fatores = ["IAN", "IDA", "IEG", "IAA", "IPS", "IPP"]
     correlacoes = (
         df[fatores + ["IPV"]]
@@ -383,7 +383,7 @@ def questao_7(df: pd.DataFrame) -> None:
 
 
 def questao_8(df: pd.DataFrame) -> None:
-    st.subheader("8. Multidimensionalidade â€” indicadores associados ao INDE")
+    st.subheader("8. Multidimensionalidade — indicadores associados ao INDE")
     fatores = ["IDA", "IEG", "IPS", "IPP"]
     correlacoes = (
         df[fatores + ["INDE"]]
@@ -416,20 +416,20 @@ def questao_8(df: pd.DataFrame) -> None:
                 y="INDE",
                 color="ANO_REFERENCIA",
                 opacity=0.4,
-                title="Combinação média de IDA, IEG, IPS e IPP Ã— INDE",
+                title="Combinação média de IDA, IEG, IPS e IPP × INDE",
                 labels={"MEDIA_4_INDICADORES": "Média dos quatro indicadores"},
             ),
             width="stretch",
         )
     else:
-        col2.info("Nãoo há¡ observações completas dos quatro indicadores.")
+        col2.info("Não há observações completas dos quatro indicadores.")
 
 
 def main() -> None:
     st.title("Datathon Passos Mágicos")
     st.write(
         "Análise interativa dos indicadores educacionais de 2022 a 2024. "
-        "Use os filtros laterais para explorar segmentos especÃ­ficos."
+        "Use os filtros laterais para explorar segmentos específicos."
     )
     if not DATA_PATH.exists():
         st.error(f"Base não encontrada: {DATA_PATH}")
@@ -438,20 +438,20 @@ def main() -> None:
     df_completo = carregar_dados(DATA_PATH)
     df = aplicar_filtros(df_completo)
     if df.empty:
-        st.warning("Nenhum registro corresponde Ã  combinações atual de filtros.")
+        st.warning("Nenhum registro corresponde à combinação atual de filtros.")
         st.stop()
 
     abas = st.tabs(
         [
             "Visão geral",
-            "1 Â· IAN",
-            "2 Â· IDA",
-            "3 Â· IEG",
-            "4 Â· IAA",
-            "5 Â· IPS",
-            "6 Â· IPP",
-            "7 Â· IPV",
-            "8 Â· INDE",
+            "1 · IAN",
+            "2 · IDA",
+            "3 · IEG",
+            "4 · IAA",
+            "5 · IPS",
+            "6 · IPP",
+            "7 · IPV",
+            "8 · INDE",
             "Modelo de risco",
         ]
     )
@@ -480,9 +480,9 @@ def main() -> None:
             "validação temporal, avaliações e análise de vazamento de dados."
         )
         st.write(
-            "O alvo proposto Ã© a ocorrência de defasagem negativa no ano seguinte. "
-            "O conjunto longitudinal disponí­vel possui transições 2022 á ’2023 e "
-            "2023 á ’2024."
+            "O alvo proposto é a ocorrência de defasagem negativa no ano seguinte. "
+            "O conjunto longitudinal disponível possui transições 2022 → 2023 e "
+            "2023 → 2024."
         )
 
 
