@@ -1,0 +1,35 @@
+{
+  "modelo": "HistGradientBoosting",
+  "limiar": 0.54674,
+  "features": [
+    "IDADE",
+    "ANOS_NA_PM",
+    "FASE_NUMERICA",
+    "DEFASAGEM",
+    "IAN",
+    "IDA",
+    "IEG",
+    "IAA",
+    "IPS",
+    "IPV",
+    "INDE",
+    "GENERO",
+    "INSTITUICAO_ENSINO",
+    "QUALIDADE_REGISTRO"
+  ],
+  "definicao_alvo": "DEFASAGEM no ano seguinte < 0",
+  "treino": "2022 → 2023",
+  "teste": "2023 → 2024",
+  "n_treino": 600,
+  "n_teste": 765,
+  "metricas_teste": {
+    "limiar": 0.5467,
+    "roc_auc": 0.879,
+    "pr_auc": 0.8325,
+    "recall_risco": 0.7727,
+    "precisao_risco": 0.7104,
+    "f1_risco": 0.7403,
+    "balanced_accuracy": 0.7802,
+    "brier": 0.1516
+  }
+}

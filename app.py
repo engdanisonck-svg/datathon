@@ -7,7 +7,9 @@ Execução:
 from __future__ import annotations
 
 from pathlib import Path
+import json
 
+import joblib
 import numpy as np
 import pandas as pd
 import plotly.express as px
@@ -17,6 +19,9 @@ import streamlit as st
 
 ROOT = Path(__file__).resolve().parent
 DATA_PATH = ROOT / "BASE_PEDE_CONSOLIDADA_TRATADA_V2.xlsx"
+MODEL_PATH = ROOT / "outputs" / "modelo" / "modelo_risco.joblib"
+MODEL_META_PATH = ROOT / "outputs" / "modelo" / "metadados_modelo.json"
+MODEL_IMPORTANCE_PATH = ROOT / "outputs" / "modelo" / "importancia_variaveis.csv"
 INDICADORES = ["IAN", "IDA", "IEG", "IAA", "IPS", "IPP", "IPV", "INDE"]
 CORES_DEFASAGEM = {
     "Severa (≤ -2)": "#DC2626",
@@ -42,6 +47,13 @@ def carregar_dados(path: Path) -> pd.DataFrame:
         labels=["Severa (≤ -2)", "Moderada (-1)", "Sem defasagem (≥ 0)"],
     )
     return df
+
+
+@st.cache_resource(show_spinner="Carregando o modelo preditivo...")
+def carregar_modelo():
+    modelo = joblib.load(MODEL_PATH)
+    metadados = json.loads(MODEL_META_PATH.read_text(encoding="utf-8"))
+    return modelo, metadados
 
 
 def formatar_numero(valor: float) -> str:
@@ -425,6 +437,139 @@ def questao_8(df: pd.DataFrame) -> None:
         col2.info("Não há observações completas dos quatro indicadores.")
 
 
+def modelo_risco(df: pd.DataFrame) -> None:
+    st.subheader("9. Previsão de risco de defasagem")
+    st.write(
+        "Informe os dados atuais do aluno para estimar a probabilidade de "
+        "defasagem negativa no ano seguinte."
+    )
+    if not MODEL_PATH.exists() or not MODEL_META_PATH.exists():
+        st.warning(
+            "O modelo treinado não foi encontrado. Execute "
+            "`python src/modelo_preditivo.py` antes de utilizar esta aba."
+        )
+        return
+
+    modelo, metadados = carregar_modelo()
+    generos = sorted(df["GENERO"].dropna().astype(str).unique())
+    instituicoes = sorted(df["INSTITUICAO_ENSINO"].dropna().astype(str).unique())
+    qualidades = sorted(df["QUALIDADE_REGISTRO"].dropna().astype(str).unique())
+
+    with st.form("formulario_risco"):
+        st.markdown("#### Dados do aluno")
+        col1, col2, col3 = st.columns(3)
+        idade = col1.number_input("Idade", min_value=5, max_value=30, value=15)
+        anos_pm = col2.number_input(
+            "Anos na Passos Mágicos", min_value=0, max_value=15, value=3
+        )
+        fase = col3.number_input("Fase numérica", min_value=0, max_value=8, value=4)
+        genero = col1.selectbox("Gênero", generos)
+        instituicao = col2.selectbox("Instituição de ensino", instituicoes)
+        qualidade = col3.selectbox("Qualidade do registro", qualidades)
+
+        st.markdown("#### Indicadores atuais")
+        c1, c2, c3, c4 = st.columns(4)
+        defasagem = c1.number_input(
+            "Defasagem atual", min_value=-5, max_value=3, value=0, step=1
+        )
+        ian = c2.slider("IAN", 0.0, 10.0, 10.0, 0.1)
+        ida = c3.slider("IDA", 0.0, 10.0, 6.0, 0.1)
+        ieg = c4.slider("IEG", 0.0, 10.0, 7.0, 0.1)
+        iaa = c1.slider("IAA", 0.0, 10.0, 7.0, 0.1)
+        ips = c2.slider("IPS", 0.0, 10.0, 7.0, 0.1)
+        ipv = c3.slider("IPV", 0.0, 10.0, 7.0, 0.1)
+        inde = c4.slider("INDE", 0.0, 10.0, 7.0, 0.1)
+        calcular = st.form_submit_button("Calcular probabilidade", type="primary")
+
+    if not calcular:
+        st.caption("Preencha o formulário e clique em “Calcular probabilidade”.")
+        return
+
+    entrada = pd.DataFrame(
+        [
+            {
+                "IDADE": idade,
+                "ANOS_NA_PM": anos_pm,
+                "FASE_NUMERICA": fase,
+                "DEFASAGEM": defasagem,
+                "IAN": ian,
+                "IDA": ida,
+                "IEG": ieg,
+                "IAA": iaa,
+                "IPS": ips,
+                "IPV": ipv,
+                "INDE": inde,
+                "GENERO": genero,
+                "INSTITUICAO_ENSINO": instituicao,
+                "QUALIDADE_REGISTRO": qualidade,
+            }
+        ]
+    )
+    probabilidade = float(modelo.predict_proba(entrada)[0, 1])
+    limiar = float(metadados["limiar"])
+    classificacao = "Em risco" if probabilidade >= limiar else "Sem risco"
+    if probabilidade >= limiar:
+        faixa = "Alto"
+    elif probabilidade >= limiar * 0.65:
+        faixa = "Moderado"
+    else:
+        faixa = "Baixo"
+
+    m1, m2, m3 = st.columns(3)
+    m1.metric("Probabilidade estimada", f"{probabilidade:.1%}")
+    m2.metric("Classificação", classificacao)
+    m3.metric("Nível de alerta", faixa)
+
+    gauge = go.Figure(
+        go.Indicator(
+            mode="gauge+number",
+            value=probabilidade * 100,
+            number={"suffix": "%", "valueformat": ".1f"},
+            title={"text": "Risco estimado para o próximo ano"},
+            gauge={
+                "axis": {"range": [0, 100]},
+                "steps": [
+                    {"range": [0, limiar * 65], "color": "#DCFCE7"},
+                    {"range": [limiar * 65, limiar * 100], "color": "#FEF3C7"},
+                    {"range": [limiar * 100, 100], "color": "#FEE2E2"},
+                ],
+                "threshold": {
+                    "line": {"color": "#991B1B", "width": 4},
+                    "value": limiar * 100,
+                },
+            },
+        )
+    )
+    gauge.update_layout(height=330, margin=dict(l=30, r=30, t=70, b=20))
+    st.plotly_chart(gauge, width="stretch")
+
+    st.caption(
+        f"O limiar operacional do modelo é {limiar:.1%}. A previsão serve como "
+        "apoio à priorização e não substitui a avaliação pedagógica e psicossocial."
+    )
+
+    metricas = metadados["metricas_teste"]
+    with st.expander("Desempenho e fatores gerais do modelo"):
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("ROC-AUC", f"{metricas['roc_auc']:.3f}")
+        c2.metric("PR-AUC", f"{metricas['pr_auc']:.3f}")
+        c3.metric("Recall", f"{metricas['recall_risco']:.1%}")
+        c4.metric("Precisão", f"{metricas['precisao_risco']:.1%}")
+        if MODEL_IMPORTANCE_PATH.exists():
+            importancia = pd.read_csv(MODEL_IMPORTANCE_PATH).head(8)
+            st.plotly_chart(
+                px.bar(
+                    importancia.sort_values("importancia"),
+                    x="importancia",
+                    y="variavel",
+                    orientation="h",
+                    title="Fatores gerais mais influentes no teste temporal",
+                    labels={"importancia": "Importância por permutação", "variavel": "Variável"},
+                ),
+                width="stretch",
+            )
+
+
 def main() -> None:
     st.title("Datathon Passos Mágicos")
     st.write(
@@ -474,16 +619,7 @@ def main() -> None:
     with abas[8]:
         questao_8(df)
     with abas[9]:
-        st.subheader("9. Previsão de risco de defasagem")
-        st.info(
-            "A interface está reservada para o modelo. Ela será ativada depois da "
-            "validação temporal, avaliações e análise de vazamento de dados."
-        )
-        st.write(
-            "O alvo proposto é a ocorrência de defasagem negativa no ano seguinte. "
-            "O conjunto longitudinal disponível possui transições 2022 → 2023 e "
-            "2023 → 2024."
-        )
+        modelo_risco(df_completo)
 
 
 if __name__ == "__main__":

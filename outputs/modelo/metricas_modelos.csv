@@ -1,0 +1,4 @@
+﻿,limiar,roc_auc,pr_auc,recall_risco,precisao_risco,f1_risco,balanced_accuracy,brier
+HistGradientBoosting,0.5467,0.879,0.8325,0.7727,0.7104,0.7403,0.7802,0.1516
+Random Forest,0.4551,0.8685,0.8173,0.7305,0.7188,0.7246,0.769,0.1486
+Regressão logística,0.4307,0.8128,0.7665,0.526,0.757,0.6207,0.7061,0.1833
