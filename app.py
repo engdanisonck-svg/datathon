@@ -6,6 +6,7 @@ Execução:
 
 from __future__ import annotations
 
+from io import BytesIO
 from pathlib import Path
 import json
 
@@ -40,6 +41,16 @@ st.set_page_config(
 @st.cache_data(show_spinner="Carregando a base consolidada...")
 def carregar_dados(path: Path) -> pd.DataFrame:
     df = pd.read_excel(path, sheet_name="BASE_CONSOLIDADA")
+    return preparar_dados(df)
+
+
+@st.cache_data(show_spinner="Carregando a base enviada...")
+def carregar_dados_enviados(conteudo: bytes) -> pd.DataFrame:
+    df = pd.read_excel(BytesIO(conteudo), sheet_name="BASE_CONSOLIDADA")
+    return preparar_dados(df)
+
+
+def preparar_dados(df: pd.DataFrame) -> pd.DataFrame:
     df["ANO_REFERENCIA"] = df["ANO_REFERENCIA"].astype(int)
     df["NIVEL_DEFASAGEM"] = pd.cut(
         df["DEFASAGEM"],
@@ -576,11 +587,21 @@ def main() -> None:
         "Análise interativa dos indicadores educacionais de 2022 a 2024. "
         "Use os filtros laterais para explorar segmentos específicos."
     )
-    if not DATA_PATH.exists():
-        st.error(f"Base não encontrada: {DATA_PATH}")
-        st.stop()
-
-    df_completo = carregar_dados(DATA_PATH)
+    if DATA_PATH.exists():
+        df_completo = carregar_dados(DATA_PATH)
+    else:
+        st.info(
+            "Para preservar a privacidade, a base não fica armazenada no site. "
+            "Carregue o arquivo Excel autorizado para iniciar a análise."
+        )
+        arquivo = st.file_uploader(
+            "Base consolidada (.xlsx)",
+            type=["xlsx"],
+            help="O arquivo é processado somente durante esta sessão do Streamlit.",
+        )
+        if arquivo is None:
+            st.stop()
+        df_completo = carregar_dados_enviados(arquivo.getvalue())
     df = aplicar_filtros(df_completo)
     if df.empty:
         st.warning("Nenhum registro corresponde à combinação atual de filtros.")

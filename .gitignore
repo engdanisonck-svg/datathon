@@ -9,3 +9,8 @@ __pycache__/
 BASE_PEDE_CONSOLIDADA_TRATADA_V2.xlsx
 POSTECH - Datathon - Fase 5.pdf
 READ ME .docx
+
+# Materiais finais mantidos apenas na pasta de trabalho local.
+outputs/apresentacao/
+outputs/storytelling/
+src/conclusoes_datathon.py
