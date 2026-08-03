@@ -162,8 +162,7 @@ def visao_geral(df: pd.DataFrame) -> None:
 def questao_1(df: pd.DataFrame) -> None:
     st.subheader("1. Adequação do ní­vel IAN e defasagem")
     st.caption(
-        "Definição operacional usada: moderada = -1; severa -2. "
-        "A regra deve ser confirmada com a área de negócio."
+        "Definição operacional usada: moderada = -1; severa -2."
     )
     tabela = (
         df.groupby(["ANO_REFERENCIA", "NIVEL_DEFASAGEM"], observed=True)
