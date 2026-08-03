@@ -24,6 +24,40 @@ MODEL_PATH = ROOT / "outputs" / "modelo" / "modelo_risco.joblib"
 MODEL_META_PATH = ROOT / "outputs" / "modelo" / "metadados_modelo.json"
 MODEL_IMPORTANCE_PATH = ROOT / "outputs" / "modelo" / "importancia_variaveis.csv"
 INDICADORES = ["IAN", "IDA", "IEG", "IAA", "IPS", "IPP", "IPV", "INDE"]
+DICIONARIO_INDICES = {
+    "IAN": (
+        "Indicador de Adequação de Nível",
+        "Representa a adequação do aluno à fase esperada e ajuda a identificar situações de defasagem.",
+    ),
+    "IDA": (
+        "Indicador de Desempenho Acadêmico",
+        "Sintetiza o desempenho acadêmico a partir das notas disponíveis nas disciplinas.",
+    ),
+    "IEG": (
+        "Indicador de Engajamento",
+        "Expressa o grau de participação e envolvimento do aluno nas atividades do programa.",
+    ),
+    "IAA": (
+        "Indicador de Autoavaliação",
+        "Registra a percepção do aluno sobre si mesmo e sobre o próprio desenvolvimento.",
+    ),
+    "IPS": (
+        "Indicador Psicossocial",
+        "Reúne aspectos sociais, emocionais e psicológicos observados no acompanhamento do aluno.",
+    ),
+    "IPP": (
+        "Indicador Psicopedagógico",
+        "Resume a avaliação psicopedagógica relacionada à aprendizagem e às necessidades de apoio.",
+    ),
+    "IPV": (
+        "Indicador de Ponto de Virada",
+        "Sinaliza mudanças acadêmicas, emocionais ou de engajamento associadas à transformação da trajetória.",
+    ),
+    "INDE": (
+        "Índice de Desenvolvimento Educacional",
+        "É a nota global do aluno, composta pela combinação ponderada dos diferentes indicadores.",
+    ),
+}
 CORES_DEFASAGEM = {
     "Severa (≤ -2)": "#DC2626",
     "Moderada (-1)": "#F59E0B",
@@ -73,6 +107,16 @@ def formatar_numero(valor: float) -> str:
 
 def aplicar_filtros(df: pd.DataFrame) -> pd.DataFrame:
     st.sidebar.header("Filtros")
+    with st.sidebar.expander("Dicionário dos índices"):
+        st.caption(
+            "Os indicadores são apresentados, em geral, numa escala de 0 a 10. "
+            "Valores mais altos costumam representar uma condição mais favorável, "
+            "mas devem ser interpretados em conjunto e conforme o ano."
+        )
+        for sigla, (nome, descricao) in DICIONARIO_INDICES.items():
+            st.markdown(f"**{sigla} — {nome}**")
+            st.write(descricao)
+
     anos = sorted(df["ANO_REFERENCIA"].dropna().unique())
     anos_escolhidos = st.sidebar.multiselect("Ano", anos, default=anos)
 
